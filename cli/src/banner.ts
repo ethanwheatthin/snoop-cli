@@ -1,12 +1,8 @@
 import chalk from 'chalk';
 
-const snoopy = [
-''
-];
+// Snoopy art removed per request. Only text animation remains.
 
-const snoopyColored = snoopy.map(line => chalk.white(line));
-
-// SNOOP big text (figlet "ANSI Shadow" style)
+// SNOOP big text (figlet "ANSI Shadow" style")
 const snoopText = [
   ` ███████╗███╗   ██╗ ██████╗  ██████╗ ██████╗ `,
   ` ██╔════╝████╗  ██║██╔═══██╗██╔═══██╗██╔══██╗`,
@@ -18,9 +14,6 @@ const snoopText = [
 
 const tagline = `  🔍 explains packages before you install them`;
 
-// Pad snoopy lines to a fixed width for side-by-side layout
-const SNOOPY_WIDTH = 21;
-const paddedSnoopy = snoopy.map(l => l.padEnd(SNOOPY_WIDTH));
 
 // Color themes cycling across frames for the text sweep
 const colors = [
@@ -47,12 +40,6 @@ function colorSweep(lines: string[], frame: number): string[] {
 function renderFrame(frame: number, totalFrames: number): string {
   const progress = frame / totalFrames;
 
-  // Snoopy fades in from top
-  const snoopyVisibleLines = Math.min(
-    snoopy.length,
-    Math.floor(progress * 2 * snoopy.length)
-  );
-
   // SNOOP text sweeps in from left
   const textVisibleChars = Math.floor(
     progress * 2 * (snoopText[0]?.length ?? 0)
@@ -62,14 +49,9 @@ function renderFrame(frame: number, totalFrames: number): string {
 
   const outputLines: string[] = [];
 
-  const totalRows = Math.max(snoopy.length, snoopText.length + 2);
+  const totalRows = snoopText.length + 2;
 
   for (let row = 0; row < totalRows; row++) {
-    const snoopyPart =
-      row < snoopyVisibleLines
-        ? chalk.white(paddedSnoopy[row] ?? ' '.repeat(SNOOPY_WIDTH))
-        : ' '.repeat(SNOOPY_WIDTH);
-
     let textPart = '';
     if (row < snoopText.length) {
       // Slice visible chars from colored text (strip ANSI for slicing, re-apply)
@@ -81,7 +63,7 @@ function renderFrame(frame: number, totalFrames: number): string {
       textPart = chalk.gray(tagline);
     }
 
-    outputLines.push(`  ${snoopyPart}  ${textPart}`);
+    outputLines.push(`  ${textPart}`);
   }
 
   return outputLines.join('\n');
@@ -100,7 +82,7 @@ export async function playBanner(): Promise<void> {
   const totalFrames = 40;
   const fps = 20;
   const frameMs = 1000 / fps;
-  const totalRows = Math.max(snoopy.length, snoopText.length + 2);
+  const totalRows = snoopText.length + 2;
 
   // Render first frame (no clear needed)
   const first = renderFrame(0, totalFrames);
