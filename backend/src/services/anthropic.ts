@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { AnalysisLLMResult, PackageFacts } from "../types.js";
+import type { AnalysisLLMResult, PackageFacts, Vulnerability } from "../types.js";
 
 const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
 
@@ -32,6 +32,43 @@ function safeJsonParse<T>(input: string): T {
     }
     throw new Error("Model did not return valid JSON");
   }
+}
+
+function buildUserPrompt(facts: PackageFacts, vulnerabilities: Vulnerability[]): string {
+  const activeVulns   = vulnerabilities.filter((v) => !v.patched);
+  const patchedVulns  = vulnerabilities.filter((v) => v.patched);
+
+  const formatVuln = (v: Vulnerability) =>
+    `- ${v.id} [${v.severity}]${v.fixed_version ? ` (fixed in ${v.fixed_version})` : ""}: ${v.summary}`;
+
+  const vulnSection = [
+    activeVulns.length
+      ? `Active (affects current version):\n${activeVulns.slice(0, 5).map(formatVuln).join("\n")}`
+      : "Active: none.",
+    patchedVulns.length
+      ? `Historical (patched in a later version):\n${patchedVulns.slice(0, 5).map(formatVuln).join("\n")}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return `Analyze this package and return JSON in this exact shape:
+{
+  "summary": "string",
+  "use_case": "string",
+  "alternatives": [{ "name": "string", "comparison": "string" }],
+  "license_risk": false,
+  "license_type": "string",
+  "health_score": 0
+}
+
+Package name: ${facts.package}
+Weekly downloads: ${facts.weekly_downloads}
+Last published: ${facts.last_published}
+License: ${facts.license}
+README excerpt: ${facts.readme_excerpt}
+Dependencies: ${facts.dep_count}
+Known vulnerabilities:\n${vulnSection}`;
 }
 
 function fallbackAnalysis(facts: PackageFacts): AnalysisLLMResult {
@@ -88,7 +125,10 @@ async function callAnthropicViaHttp(params: {
   return firstText;
 }
 
-export async function analyzeWithAnthropic(facts: PackageFacts): Promise<AnalysisLLMResult> {
+export async function analyzeWithAnthropic(
+  facts: PackageFacts,
+  vulnerabilities: Vulnerability[] = [],
+): Promise<AnalysisLLMResult> {
   const apiKey = normalizeEnvValue(process.env.ANTHROPIC_API_KEY);
   const model = normalizeEnvValue(process.env.MODEL) || DEFAULT_MODEL;
   if (!apiKey) {
@@ -108,22 +148,7 @@ export async function analyzeWithAnthropic(facts: PackageFacts): Promise<Analysi
     const systemPrompt =
       "You are a developer tool that analyzes npm/PyPI packages and returns structured JSON. Always return valid JSON only - no markdown, no explanation outside the JSON.";
 
-    const userPrompt = `Analyze this package and return JSON in this exact shape:
-{
-  "summary": "string",
-  "use_case": "string",
-  "alternatives": [{ "name": "string", "comparison": "string" }],
-  "license_risk": false,
-  "license_type": "string",
-  "health_score": 0
-}
-
-Package name: ${facts.package}
-Weekly downloads: ${facts.weekly_downloads}
-Last published: ${facts.last_published}
-License: ${facts.license}
-README excerpt: ${facts.readme_excerpt}
-Dependencies: ${facts.dep_count}`;
+    const userPrompt = buildUserPrompt(facts, vulnerabilities);
 
     const response = await anthropic.messages.create({
       model,
@@ -155,22 +180,7 @@ Dependencies: ${facts.dep_count}`;
       const systemPrompt =
         "You are a developer tool that analyzes npm/PyPI packages and returns structured JSON. Always return valid JSON only - no markdown, no explanation outside the JSON.";
 
-      const userPrompt = `Analyze this package and return JSON in this exact shape:
-{
-  "summary": "string",
-  "use_case": "string",
-  "alternatives": [{ "name": "string", "comparison": "string" }],
-  "license_risk": false,
-  "license_type": "string",
-  "health_score": 0
-}
-
-Package name: ${facts.package}
-Weekly downloads: ${facts.weekly_downloads}
-Last published: ${facts.last_published}
-License: ${facts.license}
-README excerpt: ${facts.readme_excerpt}
-Dependencies: ${facts.dep_count}`;
+      const userPrompt = buildUserPrompt(facts, vulnerabilities);
 
       const text = await callAnthropicViaHttp({
         apiKey,

@@ -1,23 +1,7 @@
 import chalk from 'chalk';
 
-// ASCII art by Sebastian Stoecker (asciiart.eu/comics/peanuts)
 const snoopy = [
-  `         _          `,
-  `        (:)_        `,
-  `      ,'    \`.      `,
-  `     :        :     `,
-  `     |        |     `,
-  `     |       /|     `,
-  `     ; -  _,' :     `,
-  `    /          \\    `,
-  `   (            :   `,
-  `____\\___    ____|   `,
-  `        |::|        `,
-  `        |::|        `,
-  `        |::|        `,
-  `        |::|        `,
-  `        |::;        `,
-  `        \`:/         `,
+''
 ];
 
 const snoopyColored = snoopy.map(line => chalk.white(line));

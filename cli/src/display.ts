@@ -1,5 +1,15 @@
 import chalk from "chalk";
-import type { AnalyzeResponse } from "./types.js";
+import type { AnalyzeResponse, VulnSeverity } from "./types.js";
+
+function severityColor(sev: VulnSeverity): (text: string) => string {
+  switch (sev) {
+    case "CRITICAL": return (t) => chalk.bgRed.bold(t);
+    case "HIGH":     return (t) => chalk.red.bold(t);
+    case "MEDIUM":   return (t) => chalk.yellow(t);
+    case "LOW":      return (t) => chalk.blue(t);
+    default:         return (t) => chalk.gray(t);
+  }
+}
 
 function formatDownloads(value: number): string {
   if (value >= 1_000_000_000) {
@@ -83,6 +93,39 @@ export function renderCard(data: AnalyzeResponse): void {
 
   if (!data.alternatives.length) {
     out.push(chalk.cyan(`│${padRight("  - No alternatives suggested", inner)}│`));
+  }
+
+  // ── Vulnerabilities ──────────────────────────────────────────────────────
+  out.push(chalk.cyan(`│${padRight("", inner)}│`));
+
+  const vulns = data.vulnerabilities ?? [];
+  if (!vulns.length) {
+    out.push(chalk.cyan(`│${padRight("  Vulnerabilities: ", inner)}│`));
+    out.push(chalk.cyan(`│`) + chalk.green(padRight("  ✔ No known vulnerabilities", inner)) + chalk.cyan(`│`));
+  } else {
+    const unpatched = vulns.filter((v) => !v.patched);
+    const patched   = vulns.filter((v) => v.patched);
+    const critCount = unpatched.filter((v) => v.severity === "CRITICAL").length;
+    const highCount = unpatched.filter((v) => v.severity === "HIGH").length;
+    const header =
+      `  Vulnerabilities: ${unpatched.length} active, ${patched.length} historical` +
+      (critCount ? `  ${critCount} CRITICAL` : "") +
+      (highCount ? `  ${highCount} HIGH` : "");
+    out.push(chalk.cyan(`│`) + chalk.red.bold(padRight(header, inner)) + chalk.cyan(`│`));
+    for (const v of vulns.slice(0, 5)) {
+      const colorize = severityColor(v.severity);
+      const badge = colorize(`[${v.severity}]`);
+      const statusTag = v.patched ? chalk.green("[PATCHED]") : chalk.red("[ACTIVE]");
+      const fixNote = v.fixed_version ? ` → fix: ${v.fixed_version}` : "";
+      const prefix = `  ${v.id}${fixNote}`;
+      out.push(chalk.cyan(`│`) + chalk.white(padRight(prefix, inner)) + chalk.cyan(`│`));
+      for (const line of wrapLine(`    ${badge} ${statusTag} ${v.summary}`, inner - 4)) {
+        out.push(chalk.cyan(`│${padRight(`  ${line}`, inner)}│`));
+      }
+    }
+    if (vulns.length > 5) {
+      out.push(chalk.cyan(`│${padRight(`  ...and ${vulns.length - 5} more`, inner)}│`));
+    }
   }
 
   out.push(chalk.cyan("└" + "─".repeat(inner) + "┘"));

@@ -1,5 +1,15 @@
 export type Ecosystem = "npm" | "pip";
 
+export type VulnSeverity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "UNKNOWN";
+
+export interface Vulnerability {
+  id: string;
+  severity: VulnSeverity;
+  summary: string;
+  fixed_version?: string;
+  patched: boolean;
+}
+
 export interface AnalyzeRequest {
   package: string;
   ecosystem?: Ecosystem;
@@ -28,6 +38,7 @@ export interface AnalyzeResponse {
   weekly_downloads: number;
   last_published: string;
   health_score: number;
+  vulnerabilities: Vulnerability[];
   cached: boolean;
 }
 

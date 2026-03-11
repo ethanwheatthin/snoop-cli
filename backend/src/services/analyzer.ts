@@ -4,6 +4,7 @@ import { fetchPypiFacts } from "./pypi.js";
 import { analyzeWithAnthropic } from "./anthropic.js";
 import { computeHealthScore } from "./health.js";
 import { getCachedAnalysis, setCachedAnalysis } from "./cache.js";
+import { fetchVulnerabilities } from "./vuln.js";
 
 async function getFacts(packageName: string, ecosystem: Ecosystem): Promise<PackageFacts> {
   if (ecosystem === "pip") {
@@ -21,7 +22,8 @@ export async function analyzePackage(packageName: string, ecosystem: Ecosystem):
     return { ...cached, cached: true };
   }
 
-  const llmResult = await analyzeWithAnthropic(facts);
+  const vulnerabilities = await fetchVulnerabilities(facts.package, facts.version, ecosystem);
+  const llmResult = await analyzeWithAnthropic(facts, vulnerabilities);
   const deterministicHealthScore = computeHealthScore({
     weeklyDownloads: facts.weekly_downloads,
     lastPublished: facts.last_published,
@@ -43,6 +45,7 @@ export async function analyzePackage(packageName: string, ecosystem: Ecosystem):
     weekly_downloads: facts.weekly_downloads,
     last_published: facts.last_published,
     health_score: Math.round((deterministicHealthScore + llmResult.health_score) / 2),
+    vulnerabilities,
     cached: false,
   };
 
