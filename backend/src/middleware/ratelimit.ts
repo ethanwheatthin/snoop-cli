@@ -5,7 +5,7 @@ interface CounterRecord {
   resetAt: number;
 }
 
-const DAILY_LIMIT = 10;
+const DAILY_LIMIT = Number(process.env.RATE_LIMIT_DAILY ?? 500);
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const counters = new Map<string, CounterRecord>();
 

@@ -7,6 +7,7 @@ import type { AnalyzeRequest, Ecosystem } from "../types.js";
 const bodySchema = z.object({
   package: z.string().trim().min(1, "package is required"),
   ecosystem: z.enum(["npm", "pip"]).optional(),
+  version: z.string().trim().optional(),
 });
 
 export const analyzeRoute = new Hono();
@@ -29,7 +30,7 @@ analyzeRoute.post("/analyze", async (c) => {
     }
 
     const ecosystem = (parsed.data.ecosystem ?? "npm") as Ecosystem;
-    const result = await analyzePackage(parsed.data.package, ecosystem);
+    const result = await analyzePackage(parsed.data.package, ecosystem, parsed.data.version);
     return c.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

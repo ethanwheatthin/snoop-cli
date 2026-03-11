@@ -30,21 +30,25 @@ async function fetchWeeklyDownloads(packageName: string): Promise<number> {
   return json.downloads ?? 0;
 }
 
-export async function fetchNpmFacts(packageName: string): Promise<PackageFacts> {
+export async function fetchNpmFacts(packageName: string, requestedVersion?: string): Promise<PackageFacts> {
   const res = await fetch(`https://registry.npmjs.org/${encodeURIComponent(packageName)}`);
   if (!res.ok) {
     throw new Error(`Package '${packageName}' not found in npm registry`);
   }
 
   const data = (await res.json()) as NpmPackageResponse;
-  const version = data["dist-tags"]?.latest;
+
+  const version = requestedVersion
+    ? requestedVersion
+    : data["dist-tags"]?.latest;
+
   if (!version) {
     throw new Error(`Unable to resolve latest npm version for '${packageName}'`);
   }
 
   const versionMeta = data.versions?.[version];
   if (!versionMeta) {
-    throw new Error(`Missing metadata for ${packageName}@${version}`);
+    throw new Error(`Version '${version}' not found for npm package '${packageName}'`);
   }
 
   const repositoryUrl =

@@ -24,14 +24,19 @@ function resolveRepositoryUrl(info: PyPiInfo): string | undefined {
   return github?.[1];
 }
 
-export async function fetchPypiFacts(packageName: string): Promise<PackageFacts> {
-  const res = await fetch(`https://pypi.org/pypi/${encodeURIComponent(packageName)}/json`);
+export async function fetchPypiFacts(packageName: string, requestedVersion?: string): Promise<PackageFacts> {
+  const url = requestedVersion
+    ? `https://pypi.org/pypi/${encodeURIComponent(packageName)}/${encodeURIComponent(requestedVersion)}/json`
+    : `https://pypi.org/pypi/${encodeURIComponent(packageName)}/json`;
+
+  const res = await fetch(url);
   if (!res.ok) {
-    throw new Error(`Package '${packageName}' not found in PyPI`);
+    const label = requestedVersion ? `'${packageName}@${requestedVersion}'` : `'${packageName}'`;
+    throw new Error(`Package ${label} not found in PyPI`);
   }
 
   const data = (await res.json()) as PyPiResponse;
-  const version = data.info.version;
+  const version = requestedVersion ?? data.info.version;
   if (!version) {
     throw new Error(`Unable to resolve latest PyPI version for '${packageName}'`);
   }

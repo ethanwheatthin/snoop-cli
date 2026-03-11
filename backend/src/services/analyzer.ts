@@ -5,15 +5,15 @@ import { analyzeWithAnthropic } from "./anthropic.js";
 import { computeHealthScore } from "./health.js";
 import { getCachedAnalysis, setCachedAnalysis } from "./cache.js";
 
-async function getFacts(packageName: string, ecosystem: Ecosystem): Promise<PackageFacts> {
+async function getFacts(packageName: string, ecosystem: Ecosystem, version?: string): Promise<PackageFacts> {
   if (ecosystem === "pip") {
-    return fetchPypiFacts(packageName);
+    return fetchPypiFacts(packageName, version);
   }
-  return fetchNpmFacts(packageName);
+  return fetchNpmFacts(packageName, version);
 }
 
-export async function analyzePackage(packageName: string, ecosystem: Ecosystem): Promise<AnalyzeResponse> {
-  const facts = await getFacts(packageName, ecosystem);
+export async function analyzePackage(packageName: string, ecosystem: Ecosystem, version?: string): Promise<AnalyzeResponse> {
+  const facts = await getFacts(packageName, ecosystem, version);
   const cacheKey = `${ecosystem}:${facts.package}@${facts.version}`;
 
   const cached = await getCachedAnalysis(cacheKey);

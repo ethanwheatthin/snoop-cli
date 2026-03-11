@@ -3,6 +3,7 @@ export type Ecosystem = "npm" | "pip";
 export interface AnalyzeRequest {
   package: string;
   ecosystem?: Ecosystem;
+  version?: string;
 }
 
 export interface AnalysisLLMResult {
