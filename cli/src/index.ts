@@ -7,6 +7,7 @@ import { fetchAnalysis } from "./api.js";
 import { renderCard } from "./display.js";
 import { promptAndInstall } from "./install.js";
 import type { Ecosystem } from "./types.js";
+import { playBanner } from "./banner.js";
 
 interface CliOptions {
   ecosystem?: Ecosystem;
@@ -85,4 +86,5 @@ program
     }
   });
 
+await playBanner();  
 program.parseAsync(process.argv);
